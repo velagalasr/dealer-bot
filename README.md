@@ -1,3 +1,14 @@
+---
+title: Dealer Bot
+emoji: 🤖
+colorFrom: blue
+colorTo: green
+sdk: docker
+sdk_version: latest
+app_file: app.py
+pinned: false
+---
+
 # 🤖 Dealer Bot
 
 A production-ready RAG-based Q&A system for dealer support using intelligent multi-agent orchestration.
