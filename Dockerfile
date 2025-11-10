@@ -10,17 +10,17 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy app
 COPY . .
 
-# Expose port for Gradio
-EXPOSE 7860
+# Make entrypoint executable
+RUN chmod +x entrypoint.sh
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
+# Expose ports
+EXPOSE 7860 8000
 
-# Run Gradio
-CMD ["python", "app/ui/gradio_app.py"]
+# Run entrypoint script
+CMD ["./entrypoint.sh"]
