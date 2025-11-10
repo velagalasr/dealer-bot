@@ -1,0 +1,26 @@
+# Core Framework
+fastapi
+uvicorn
+python-dotenv
+pydantic
+
+# LLM & Embeddings
+openai
+httpx
+
+# Vector Database
+chromadb
+numpy
+
+# Document Processing
+pypdf
+python-multipart
+requests
+
+# Testing
+pytest
+pytest-asyncio
+
+# UI Framework
+gradio
+huggingface-hub
