@@ -7,6 +7,7 @@ pydantic
 # LLM & Embeddings
 openai
 httpx
+sentence-transformers
 
 # Vector Database
 chromadb
