@@ -1,115 +1,84 @@
 """
 OpenAI Client Module
-This file is a wrapper around OpenAI's API - makes it easier to use OpenAI in our project. 
-It handles text generation, classification, and summarization.
+Using LangChain for better error handling and retries
 """
 
-from typing import List, Dict, Optional
-from openai import OpenAI
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from typing import List, Dict
 from app.config import settings
 from app.utils.logger import get_logger
+import os
 
 logger = get_logger(__name__)
 
 
 class OpenAIClient:
-    """Wrapper for OpenAI API"""
+    """OpenAI client using LangChain"""
     
-    def __init__(self, api_key: str = settings.OPENAI_API_KEY,
-                 model: str = settings.OPENAI_MODEL):
+    def __init__(self):
+        """Initialize OpenAI client with LangChain"""
+        api_key = os.getenv("OPENAI_API_KEY")
+        
+        if not api_key:
+            logger.warning("OPENAI_API_KEY not set")
+        
+        # LangChain ChatOpenAI with built-in retries!
+        self.llm = ChatOpenAI(
+            api_key=api_key,
+            model="gpt-4",
+            temperature=0.7,
+            max_retries=3,  # Built-in retry logic!
+            timeout=30
+        )
+        
+        logger.info("OpenAI client initialized with LangChain")
+    
+    def generate_response(self, messages: List[Dict], temperature: float = 0.7,
+                         max_tokens: int = 1000) -> str:
         """
-        Initialize OpenAI client
+        Generate response using LangChain
         
         Args:
-            api_key: OpenAI API key
-            model: Model to use (default from config)
-        """
-        self.client = OpenAI(api_key=api_key)
-        self.model = model
-        self.temperature = settings.TEMPERATURE
-        self.max_tokens = settings.MAX_TOKENS
-        
-        logger.info(f"OpenAI client initialized with model: {model}")
-    
-    def generate_response(self, messages: List[Dict[str, str]], 
-                         temperature: Optional[float] = None,
-                         max_tokens: Optional[int] = None) -> str:
-        """
-        Generate response using GPT
-        
-        Args:
-            messages: Chat messages (with roles and content)
-            temperature: Temperature for sampling
-            max_tokens: Maximum tokens in response
+            messages: List of message dicts with 'role' and 'content'
+            temperature: Temperature for generation
+            max_tokens: Max tokens to generate
             
         Returns:
-            str: Generated response
+            str: Generated response text
         """
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=temperature or self.temperature,
-                max_tokens=max_tokens or self.max_tokens
+            logger.info(f"Generating response with {len(messages)} messages")
+            
+            # Convert to LangChain message format
+            langchain_messages = []
+            for msg in messages:
+                role = msg.get("role")
+                content = msg.get("content")
+                
+                if role == "system":
+                    langchain_messages.append(SystemMessage(content=content))
+                elif role == "user":
+                    langchain_messages.append(HumanMessage(content=content))
+                elif role == "assistant":
+                    langchain_messages.append(AIMessage(content=content))
+            
+            # Create LLM with custom temperature and max_tokens
+            llm = ChatOpenAI(
+                model="gpt-4",
+                temperature=temperature,
+                max_tokens=max_tokens,
+                max_retries=3  # Retry on failure!
             )
             
-            return response.choices[0].message.content
+            # Generate response
+            response = llm.invoke(langchain_messages)
+            
+            logger.info(f"Response generated: {len(response.content)} chars")
+            return response.content
             
         except Exception as e:
             logger.error(f"OpenAI Error: {type(e).__name__}: {str(e)}")
-            logger.error(f"API Key: {self.client.api_key[:20] if self.client.api_key else 'MISSING'}...")
-        raise
-    
-    def classify_text(self, text: str, categories: List[str]) -> Dict[str, float]:
-        """
-        Classify text into categories
-        
-        Args:
-            text: Text to classify
-            categories: List of possible categories
-            
-        Returns:
-            Dict: Category scores
-        """
-        try:
-            prompt = f"""Classify the following text into one of these categories: {', '.join(categories)}
-            
-Text: {text}
-
-Respond with ONLY the category name, nothing else."""
-            
-            messages = [{"role": "user", "content": prompt}]
-            response = self.generate_response(messages, temperature=0.1, max_tokens=50)
-            
-            return {"classified_as": response.strip()}
-            
-        except Exception as e:
-            logger.error(f"Failed to classify text: {str(e)}")
-            raise
-    
-    def summarize(self, text: str, max_length: int = 200) -> str:
-        """
-        Summarize text
-        
-        Args:
-            text: Text to summarize
-            max_length: Maximum length of summary
-            
-        Returns:
-            str: Summary
-        """
-        try:
-            prompt = f"""Summarize the following text in maximum {max_length} characters:
-
-{text}
-
-Provide only the summary, no additional text."""
-            
-            messages = [{"role": "user", "content": prompt}]
-            return self.generate_response(messages, temperature=0.7, max_tokens=100)
-            
-        except Exception as e:
-            logger.error(f"Failed to summarize text: {str(e)}")
             raise
 
 
