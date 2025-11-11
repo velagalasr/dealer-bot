@@ -26,3 +26,9 @@ pytest-asyncio
 # UI Framework
 gradio
 huggingface-hub
+
+# LangGraph & LangChain
+langchain
+langgraph
+langchain-openai
+langchain-core
