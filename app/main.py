@@ -12,6 +12,7 @@ from app.agents.orchestrator import orchestrator
 from app.utils.logger import get_logger
 from datetime import datetime
 import uuid
+import os
 from app.api.document_endpoints import router as document_router
 
 logger = get_logger(__name__)
@@ -23,7 +24,17 @@ app = FastAPI(
     description="Bot API - RAG-based Q&A system"
 )
 
-# Add CORS middleware
+# Add CORS middleware CORS = Cross-Origin Resource Sharing
+# It's a security feature that controls which websites can call API.
+# CORS Configuration
+if os.getenv("ENVIRONMENT") == "production":
+    origins = [
+        "https://huggingface.co",
+        "https://velagalasr-dealer-bot.hf.space",
+    ]
+else:  # Development
+    origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Change in production
@@ -57,66 +68,6 @@ async def health_check():
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
         raise HTTPException(status_code=500, detail="Health check failed")
-
-
-# ============ DOCUMENT ENDPOINTS ============
-
-@app.post(f"{settings.API_PREFIX}/documents/upload")
-async def upload_document(
-    request: DocumentUploadRequest,
-    api_key: str = Depends(verify_api_key)
-):
-    """
-    Upload and process a document from URL
-    
-    Args:
-        request: Document upload request with URL
-        api_key: Validated API key
-        
-    Returns:
-        dict: Upload status and document ID
-    """
-    try:
-        logger.info(f"Received document upload request from {request.url}")
-        # Document processing will be implemented in Phase 2
-        return {
-            "status": "pending",
-            "document_id": str(uuid.uuid4()),
-            "message": "Document upload queued for processing"
-        }
-    except Exception as e:
-        logger.error(f"Document upload failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ============ INTENT CLASSIFICATION ENDPOINT ============
-
-@app.post(f"{settings.API_PREFIX}/intent", response_model=IntentResponse)
-async def classify_intent(
-    request: IntentRequest,
-    api_key: str = Depends(verify_api_key)
-):
-    """
-    Classify user intent
-    
-    Args:
-        request: Intent classification request
-        api_key: Validated API key
-        
-    Returns:
-        IntentResponse: Detected intent and specialist
-    """
-    try:
-        logger.info(f"Classifying intent for: {request.text[:100]}")
-        # Intent classification will be implemented in Phase 2
-        return IntentResponse(
-            intent="general_inquiry",
-            confidence=0.85,
-            specialist="general_agent"
-        )
-    except Exception as e:
-        logger.error(f"Intent classification failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============ MAIN QUERY ENDPOINT ============

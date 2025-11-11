@@ -26,10 +26,10 @@ class OpenAIClient:
         # LangChain ChatOpenAI with built-in retries!
         self.llm = ChatOpenAI(
             api_key=api_key,
-            model="gpt-4",
-            temperature=0.7,
+            model=settings.OPENAI_MODEL,
+            temperature=settings.TEMPERATURE,
             max_retries=3,  # Built-in retry logic!
-            timeout=30
+            timeout=settings.LLM_TIMEOUT
         )
         
         logger.info("OpenAI client initialized with LangChain")
@@ -65,10 +65,10 @@ class OpenAIClient:
             
             # Create LLM with custom temperature and max_tokens
             llm = ChatOpenAI(
-                model="gpt-4",
-                temperature=temperature,
-                max_tokens=max_tokens,
-                max_retries=3  # Retry on failure!
+                model=settings.OPENAI_MODEL,
+                temperature=settings.TEMPERATURE,
+                max_retries=3,  # Built-in retry logic!
+                timeout=settings.LLM_TIMEOUT
             )
             
             # Generate response
