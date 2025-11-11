@@ -56,8 +56,9 @@ class OpenAIClient:
             return response.choices[0].message.content
             
         except Exception as e:
-            logger.error(f"Failed to generate response: {str(e)}")
-            raise
+            logger.error(f"OpenAI Error: {type(e).__name__}: {str(e)}")
+            logger.error(f"API Key: {self.client.api_key[:20] if self.client.api_key else 'MISSING'}...")
+        raise
     
     def classify_text(self, text: str, categories: List[str]) -> Dict[str, float]:
         """
