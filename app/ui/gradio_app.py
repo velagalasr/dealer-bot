@@ -17,13 +17,13 @@ API_KEY = settings.API_KEY
 # ============ CHAT INTERFACE ============
 
 def query_bot(user_query: str, history: List[Tuple[str, str]]) -> Tuple[str, List[Tuple[str, str]]]:
-    """Your existing chat function"""
     try:
         response = requests.post(
             f"{API_URL}/api/v1/query",
             json={
                 "query": user_query,
-                "session_id": "gradio-session"
+                "session_id": "gradio-session",
+                "user_id": "gradio-user"
             },
             headers={"X-API-Key": API_KEY},
             timeout=30
@@ -44,12 +44,12 @@ def query_bot(user_query: str, history: List[Tuple[str, str]]) -> Tuple[str, Lis
         return "", history
 
 
-# ============ DOCUMENT UPLOAD INTERFACE (NEW!) ============
+# ============ DOCUMENT UPLOAD INTERFACE ============
 
 def upload_document(file):
     """Upload document via API"""
     if file is None:
-        return "❌ No file selected"
+        return "No file selected"
     
     try:
         # Get file content
@@ -65,15 +65,15 @@ def upload_document(file):
         
         if response.status_code == 200:
             data = response.json()
-            return f"✅ Document uploaded!\n\nID: {data.get('document_id')}\nChunks: {data.get('chunks_count', 'N/A')}"
+            return f"Document uploaded!\n\nID: {data.get('document_id')}\nChunks: {data.get('chunks_count', 'N/A')}"
         else:
-            return f"❌ Upload failed: {response.status_code}\n{response.text}"
+            return f"Upload failed: {response.status_code}\n{response.text}"
             
     except Exception as e:
-        return f"❌ Error: {str(e)}"
+        return f"Error: {str(e)}"
 
 
-# ============ BUILD GRADIO INTERFACE ============
+# ============ GRADIO INTERFACE ============
 
 with gr.Blocks(title="Dealer Bot") as demo:
     gr.Markdown("# 🤖 Dealer Bot")
@@ -82,11 +82,11 @@ with gr.Blocks(title="Dealer Bot") as demo:
     with gr.Tabs():
         # ========== TAB 1: CHAT ==========
         with gr.Tab("💬 Chat"):
-            gr.Markdown("Ask questions about dealer services, warranties, maintenance, etc.")
+            gr.Markdown("Ask questions about dealer services, maintenance, etc.")
             
             chatbot = gr.Chatbot(
                 label="Conversation",
-                height=500,
+                height=200,
                 show_label=True
             )
             
@@ -108,13 +108,11 @@ with gr.Blocks(title="Dealer Bot") as demo:
         
         # ========== TAB 2: DOCUMENT UPLOAD (NEW!) ==========
         with gr.Tab("📄 Upload Documents"):
-            gr.Markdown("Upload PDF or text documents to add to knowledge base")
-            
             with gr.Column():
-                gr.Markdown("### Select a file to upload:")
+                gr.Markdown("### Select a PDF file add to knowledge base:")
                 
                 file_input = gr.File(
-                    label="Choose only file [only PDF]",
+                    label="Choose only 1 file",
                     file_count="single",
                     file_types=[".pdf"]
                 )
@@ -152,10 +150,7 @@ with gr.Blocks(title="Dealer Bot") as demo:
             ## How to use:
             1. **Chat Tab:** Ask questions about dealers, warranty, maintenance
             2. **Upload Tab:** Add new documents to knowledge base
-            
-            ## API Information:
-            - Health: `/health`
-            - Docs: `/docs`
+
             """)
 
 

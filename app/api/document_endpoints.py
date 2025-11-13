@@ -4,14 +4,14 @@ Handle document upload, ingestion, listing, deletion
 """
 
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
 from pydantic import BaseModel
 from app.auth import verify_api_key
 from app.core.rag_pipeline import rag_pipeline
+from app.core.document_manager import document_manager
 from app.utils.logger import get_logger
-from fastapi import File, UploadFile
 from pathlib import Path
-import shutil
+import os
 
 logger = get_logger(__name__)
 
@@ -59,6 +59,12 @@ async def ingest_document(
     """
     Ingest document from URL into RAG system
     
+    Steps:
+    1. Download from URL
+    2. Extract text and create chunks
+    3. Generate embeddings
+    4. Store in Chroma (persistent)
+    
     Args:
         request: Document ingest request
         api_key: Validated API key
@@ -67,7 +73,7 @@ async def ingest_document(
         DocumentIngestResponse: Ingestion result
     """
     try:
-        logger.info(f"Document ingest request: {request.url}, type: {request.doc_type}")
+        logger.info(f"Document ingest from URL: {request.url}")
         
         # Validate document type
         if request.doc_type not in ["system", "user"]:
@@ -83,7 +89,7 @@ async def ingest_document(
                 detail="user_id required for user documents"
             )
         
-        # Ingest document
+        # Ingest through RAG pipeline
         result = rag_pipeline.ingest_document_from_url(
             url=request.url,
             doc_type=request.doc_type,
@@ -99,7 +105,7 @@ async def ingest_document(
                 detail=f"Failed to ingest document: {result.get('error')}"
             )
         
-        logger.info(f"Document ingested successfully: {result.get('document_id')}")
+        logger.info(f"✅ Document ingested: {result.get('document_id')}")
         return DocumentIngestResponse(**result)
         
     except HTTPException:
@@ -111,75 +117,64 @@ async def ingest_document(
             detail=f"Failed to ingest document: {str(e)}"
         )
 
+
 @router.post("/ingest-file", response_model=DocumentIngestResponse)
 async def ingest_file(
     file: UploadFile = File(...),
-    doc_type: str = "system",
-    user_id: Optional[str] = None,
-    chunk_size: int = 500,
-    chunk_overlap: int = 100,
-    api_key: str = Depends(verify_api_key)
+    api_key: str = Depends(verify_api_key),
+    doc_type: str = "user",
+    user_id: Optional[str] = "gradio-user"
 ):
     """
-    Ingest document from uploaded file into RAG system
+    Upload and ingest document through RAG pipeline
+    
+    Steps:
+    1. Save uploaded file to disk
+    2. Extract text and create chunks
+    3. Generate embeddings
+    4. Store in Chroma (persistent)
     
     Args:
-        file: Uploaded PDF file
-        doc_type: "system" or "user"
-        user_id: Owner user ID (required for user docs)
-        chunk_size: Size of text chunks
-        chunk_overlap: Overlap between chunks
+        file: Uploaded file
         api_key: Validated API key
+        doc_type: Document type (system/user)
+        user_id: Owner user ID
         
     Returns:
         DocumentIngestResponse: Ingestion result
     """
+    temp_path = None
+    
     try:
-        logger.info(f"File ingestion request: {file.filename}, type: {doc_type}")
+        logger.info(f"Ingesting uploaded file: {file.filename}")
         
-        # Validate document type
-        if doc_type not in ["system", "user"]:
-            raise HTTPException(
-                status_code=400,
-                detail="doc_type must be 'system' or 'user'"
-            )
+        # Create temp path in documents directory
+        temp_path = Path(document_manager.documents_path) / file.filename
         
-        # Validate user_id for user documents
-        if doc_type == "user" and not user_id:
-            raise HTTPException(
-                status_code=400,
-                detail="user_id required for user documents"
-            )
-        
-        # Save uploaded file temporarily
-        temp_path = Path("temp") / file.filename
-        temp_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(temp_path, "wb") as f:
-            content = await file.read()
+        # Save uploaded file
+        content = await file.read()
+        with open(temp_path, 'wb') as f:
             f.write(content)
         
-        # Ingest from file
+        logger.info(f"File saved temporarily: {temp_path}")
+        
+        # Ingest through RAG pipeline
         result = rag_pipeline.ingest_document_from_file(
             file_path=temp_path,
             doc_type=doc_type,
             user_id=user_id,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap
+            chunk_size=500,
+            chunk_overlap=100
         )
         
-        # Clean up temp file
-        if temp_path.exists():
-            temp_path.unlink()
-        
         if not result.get("success"):
-            logger.error(f"Document ingestion failed: {result.get('error')}")
+            logger.error(f"File ingestion failed: {result.get('error')}")
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to ingest document: {result.get('error')}"
+                detail=f"Failed to ingest file: {result.get('error')}"
             )
         
-        logger.info(f"Document ingested successfully: {result.get('document_id')}")
+        logger.info(f"✅ File ingested: {result.get('document_id')}")
         return DocumentIngestResponse(**result)
         
     except HTTPException:
@@ -190,22 +185,34 @@ async def ingest_file(
             status_code=500,
             detail=f"Failed to ingest file: {str(e)}"
         )
+    finally:
+        # Clean up temp file if it still exists
+        if temp_path and temp_path.exists():
+            try:
+                temp_path.unlink()
+                logger.debug(f"Cleaned up temp file: {temp_path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete temp file: {str(e)}")
+
 
 @router.get("/list", response_model=DocumentListResponse)
 async def list_documents(
     api_key: str = Depends(verify_api_key)
 ):
     """
-    List all ingested documents
+    List all ingested documents from Chroma
+    
+    Returns documents that have been ingested and indexed
+    (these are searchable by RAG)
     
     Args:
         api_key: Validated API key
         
     Returns:
-        DocumentListResponse: List of documents
+        DocumentListResponse: List of ingested documents
     """
     try:
-        logger.info("Listing documents")
+        logger.info("Listing ingested documents")
         
         result = rag_pipeline.get_ingested_documents()
         
@@ -234,6 +241,8 @@ async def clear_all_documents(
     """
     Clear all documents from RAG system (for testing only)
     
+    WARNING: This will delete all ingested documents and embeddings!
+    
     Args:
         api_key: Validated API key
         
@@ -241,7 +250,7 @@ async def clear_all_documents(
         dict: Clear result
     """
     try:
-        logger.warning("Clear all documents request")
+        logger.warning("⚠️ Clear all documents request")
         
         result = rag_pipeline.clear_all_data()
         
@@ -251,6 +260,7 @@ async def clear_all_documents(
                 detail=result.get("error", "Failed to clear documents")
             )
         
+        logger.warning("✅ All documents cleared")
         return result
         
     except HTTPException:
@@ -270,22 +280,22 @@ async def get_rag_status(
     """
     Get RAG system status
     
-    Args:
-        api_key: Validated API key
-        
     Returns:
-        dict: RAG system status
+        dict: RAG system health and document count
     """
     try:
         logger.info("Getting RAG status")
         
         docs_info = rag_pipeline.get_ingested_documents()
+        total_docs = docs_info.get("total_documents", 0)
+        total_chunks = docs_info.get("total_chunks", 0)
         
         return {
-            "status": "healthy",
-            "total_documents": docs_info.get("total_documents", 0),
-            "total_chunks": docs_info.get("total_chunks", 0),
-            "rag_ready": docs_info.get("total_documents", 0) > 0
+            "status": "healthy" if total_docs > 0 else "empty",
+            "total_documents": total_docs,
+            "total_chunks": total_chunks,
+            "rag_ready": total_docs > 0,
+            "message": f"RAG system has {total_docs} documents with {total_chunks} chunks"
         }
         
     except Exception as e:

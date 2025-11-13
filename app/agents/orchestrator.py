@@ -86,6 +86,7 @@ class AgentOrchestrator:
                     query=f"fraud detection account security prevention unauthorized access {query}",
                     session_id=session_id,
                     n_results=3,
+                    user_id=user_id,
                     doc_type="system"
                 )
                 

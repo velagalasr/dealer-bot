@@ -90,10 +90,11 @@ async def process_query(
     try:
         session_id = request.session_id or str(uuid.uuid4())
         logger.info(f"Processing query [Session: {session_id}]: {request.query[:100]}")
-        
+        user_id = request.user_id
+        logger.info(f"Processing query [user: {session_id}]: {request.user_id}")        
         # Use orchestrator to process query with security
         from app.agents.orchestrator import orchestrator
-        result = orchestrator.process_query(request.query, session_id)
+        result = orchestrator.process_query(request.query, session_id, user_id)
         
         return result
         

@@ -11,6 +11,11 @@ class QueryRequest(BaseModel):
     query: str
     session_id: Optional[str] = None
     context: Optional[str] = None
+    user_id: Optional[str] = None
+
+class UserId(BaseModel):
+    """Userided user query request"""
+    text: str
 
 class DocumentUploadRequest(BaseModel):
     """Document upload request"""

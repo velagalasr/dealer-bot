@@ -1,6 +1,7 @@
 """
 Document Manager Module
-Manages document lifecycle - download, store, delete, list
+Manages document file operations (download, store, delete, list)
+Note: Document ingestion (chunking, embedding, Chroma storage) is handled by rag_pipeline
 """
 
 from typing import List, Dict, Optional, Any
@@ -15,7 +16,7 @@ logger = get_logger(__name__)
 
 
 class DocumentManager:
-    """Manage documents - download, store, delete, list"""
+    """Manage document files - download, store, delete, list"""
     
     def __init__(self, documents_path: Path = settings.DOCUMENTS_PATH):
         """
@@ -24,16 +25,18 @@ class DocumentManager:
         Args:
             documents_path: Path to store documents
         """
-        self.documents_path = documents_path
+        self.documents_path = Path(documents_path)
         self.documents_path.mkdir(parents=True, exist_ok=True)
-        self.metadata_file = self.documents_path / "documents_metadata.json"
         
-        logger.info(f"Document manager initialized at {documents_path}")
+        logger.info(f"✅ Document manager initialized at {self.documents_path}")
     
     def download_document(self, url: str, document_type: str = "manual",
                          filename: Optional[str] = None) -> Dict[str, Any]:
         """
-        Download document from URL
+        Download document from URL and save to disk
+        
+        NOTE: After downloading, document must be ingested through rag_pipeline
+              to be indexed in Chroma and searchable by RAG
         
         Args:
             url: Document URL
@@ -59,7 +62,7 @@ class DocumentManager:
             # Generate document ID
             doc_id = hashlib.md5(url.encode()).hexdigest()[:12]
             
-            # Save file
+            # Save file to disk
             file_path = self.documents_path / filename
             with open(file_path, 'wb') as f:
                 f.write(response.content)
@@ -72,32 +75,74 @@ class DocumentManager:
                 "document_type": document_type,
                 "file_size": len(response.content),
                 "downloaded_at": datetime.now().isoformat(),
-                "status": "downloaded"
+                "status": "downloaded",
+                "file_path": str(file_path),
+                "note": "Document saved to disk. Must be ingested via rag_pipeline for RAG search."
             }
             
-            logger.info(f"Document saved: {doc_id} -> {filename}")
+            logger.info(f"✅ Document saved: {doc_id} -> {filename}")
             return doc_info
             
         except Exception as e:
             logger.error(f"Failed to download document: {str(e)}")
             raise
     
-    def get_document_path(self, document_id: str) -> Optional[Path]:
+    def save_uploaded_file(self, file_content: bytes, filename: str) -> Dict[str, Any]:
         """
-        Get path to document by ID
+        Save uploaded file to disk
+        
+        NOTE: After saving, document must be ingested through rag_pipeline
+              to be indexed in Chroma and searchable by RAG
         
         Args:
-            document_id: Document ID
+            file_content: File content as bytes
+            filename: Original filename
             
         Returns:
-            Path: Path to document file
+            Dict: File info
         """
         try:
-            # Search for document with this ID
-            for file in self.documents_path.glob("*"):
-                if file.is_file() and file.name != "documents_metadata.json":
-                    return file
+            logger.info(f"Saving uploaded file: {filename}")
             
+            # Generate document ID
+            doc_id = hashlib.md5(filename.encode()).hexdigest()[:12]
+            
+            # Save file
+            file_path = self.documents_path / filename
+            with open(file_path, 'wb') as f:
+                f.write(file_content)
+            
+            doc_info = {
+                "document_id": doc_id,
+                "filename": filename,
+                "file_size": len(file_content),
+                "saved_at": datetime.now().isoformat(),
+                "file_path": str(file_path),
+                "status": "saved",
+                "note": "Document saved to disk. Must be ingested via rag_pipeline for RAG search."
+            }
+            
+            logger.info(f"✅ File saved: {doc_id} -> {filename}")
+            return doc_info
+            
+        except Exception as e:
+            logger.error(f"Failed to save file: {str(e)}")
+            raise
+    
+    def get_document_path(self, filename: str) -> Optional[Path]:
+        """
+        Get full path to document file
+        
+        Args:
+            filename: Document filename
+            
+        Returns:
+            Path: Path to document file or None
+        """
+        try:
+            file_path = self.documents_path / filename
+            if file_path.exists() and file_path.is_file():
+                return file_path
             return None
             
         except Exception as e:
@@ -106,24 +151,26 @@ class DocumentManager:
     
     def list_documents(self) -> List[Dict[str, Any]]:
         """
-        List all downloaded documents
+        List all stored document files
         
         Returns:
-            List: List of document info
+            List: List of file information
         """
         try:
             documents = []
             
             for file in self.documents_path.glob("*"):
-                if file.is_file() and file.name != "documents_metadata.json":
+                if file.is_file():
                     doc_info = {
                         "filename": file.name,
                         "file_size": file.stat().st_size,
-                        "modified_at": datetime.fromtimestamp(file.stat().st_mtime).isoformat()
+                        "created_at": datetime.fromtimestamp(file.stat().st_ctime).isoformat(),
+                        "modified_at": datetime.fromtimestamp(file.stat().st_mtime).isoformat(),
+                        "path": str(file)
                     }
                     documents.append(doc_info)
             
-            logger.info(f"Listed {len(documents)} documents")
+            logger.info(f"✅ Listed {len(documents)} files on disk")
             return documents
             
         except Exception as e:
@@ -132,7 +179,7 @@ class DocumentManager:
     
     def delete_document(self, filename: str) -> bool:
         """
-        Delete document
+        Delete document file
         
         Args:
             filename: Document filename
@@ -145,10 +192,10 @@ class DocumentManager:
             
             if file_path.exists():
                 file_path.unlink()
-                logger.info(f"Deleted document: {filename}")
+                logger.info(f"✅ Deleted file: {filename}")
                 return True
             else:
-                logger.warning(f"Document not found: {filename}")
+                logger.warning(f"File not found: {filename}")
                 return False
                 
         except Exception as e:
@@ -157,13 +204,13 @@ class DocumentManager:
     
     def get_document_info(self, filename: str) -> Optional[Dict[str, Any]]:
         """
-        Get document information
+        Get detailed file information
         
         Args:
             filename: Document filename
             
         Returns:
-            Dict: Document info
+            Dict: File information
         """
         try:
             file_path = self.documents_path / filename

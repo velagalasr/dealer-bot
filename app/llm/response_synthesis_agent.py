@@ -303,7 +303,8 @@ Be clear, helpful, and thorough."""
             return f"""{base_prompt}
 
 Use the provided context documents to answer the user's question.
-Be accurate, helpful, and cite relevant information from the documents."""
+Be accurate, helpful, and cite relevant information from the documents.
+If unsure or did not find any info in the provided documents, admit it rather than guessing or searching elsewhere."""
     
     def _format_context_documents(self, context_docs: List[Dict[str, Any]]) -> str:
         """Format context documents for LLM"""

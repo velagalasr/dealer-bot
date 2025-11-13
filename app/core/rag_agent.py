@@ -28,7 +28,7 @@ class RAGAgent:
         self.vector_db = vector_db
         
         # Ranking and filtering parameters
-        self.min_similarity_threshold = 0.5  # Minimum relevance score
+        self.min_similarity_threshold = 0.3  # Minimum relevance score
         self.max_results = 10  # Max docs to consider
         self.rerank_window = 5  # Number of top results to consider
         
@@ -79,6 +79,7 @@ class RAGAgent:
                 # Retrieve more than needed for re-ranking
                 retrieve_count = min(self.max_results, n_results * 2)
                 raw_results = self.vector_db.query(query_embedding, n_results=retrieve_count)
+                logger.info(f"[{session_id}] Step 2: Retrived documents from vector DB - count {retrieve_count}, documents  {len(raw_results.get('documents', []))}")
             except Exception as e:
                 logger.error(f"[{session_id}] Failed to retrieve from vector DB: {str(e)}")
                 return {
@@ -102,6 +103,8 @@ class RAGAgent:
                     # Distance ranges from 0 to 2 for cosine, convert to similarity
                     similarity_score = 1 - distance
                     
+                    logger.info(f"[{session_id}] Doc {i}: distance={distance:.4f}, similarity={similarity_score:.4f}, threshold={self.min_similarity_threshold}")
+
                     # Skip if below threshold
                     if similarity_score < self.min_similarity_threshold:
                         logger.debug(f"[{session_id}] Skipping doc {i}: similarity too low ({similarity_score:.2f})")
@@ -296,24 +299,34 @@ class RAGAgent:
             List: Filtered documents
         """
         filtered = documents.copy()
+
+        filtered = [
+        d for d in filtered
+        ]
+
+        # # Filter by user access
+        # if user_id:
+        #     logger.debug(f"[{session_id}] Filtering by user_id: {user_id}")
+        #     filtered = [
+        #         d for d in filtered
+        #         if d["metadata"].get("doc_type") == "system" or d["metadata"].get("user_id") == user_id
+        #     ]
+        #     logger.debug(f"[{session_id}] After user filter: {len(filtered)} docs")
         
-        # Filter by user access
-        if user_id:
-            logger.debug(f"[{session_id}] Filtering by user_id: {user_id}")
-            filtered = [
-                d for d in filtered
-                if d["metadata"].get("doc_type") == "system" or d["metadata"].get("user_id") == user_id
-            ]
-            logger.debug(f"[{session_id}] After user filter: {len(filtered)} docs")
-        
-        # Filter by document type
-        if doc_type:
-            logger.debug(f"[{session_id}] Filtering by doc_type: {doc_type}")
-            filtered = [
-                d for d in filtered
-                if d["metadata"].get("doc_type") == doc_type
-            ]
-            logger.debug(f"[{session_id}] After doc_type filter: {len(filtered)} docs")
+        # if doc_type:
+        #     logger.debug(f"[{session_id}] Filtering by doc_type: {doc_type}")
+            
+        #     # Debug: Show what doc_types we're filtering
+        #     for d in filtered:
+        #         logger.debug(f"[{session_id}] Document doc_type: {d['metadata'].get('doc_type')}")
+            
+        #     # Now filter
+        #     filtered = [
+        #         d for d in filtered
+        #         if d["metadata"].get("doc_type") == doc_type and d["metadata"].get("user_id") != user_id
+        #     ]        # Filter by document type
+
+        #     logger.debug(f"[{session_id}] After doc_type filter: {len(filtered)} docs")
         
         return filtered
 
