@@ -86,7 +86,7 @@ with gr.Blocks(title="Dealer Bot") as demo:
             
             chatbot = gr.Chatbot(
                 label="Conversation",
-                height=200,
+                height=300,
                 show_label=True
             )
             
@@ -98,11 +98,41 @@ with gr.Blocks(title="Dealer Bot") as demo:
                     scale=4
                 )
                 submit_btn = gr.Button("Send", scale=1)
+
+            gr.Markdown("### Example Questions")
             
+            with gr.Row():
+                q1_btn = gr.Button("Can I get service performed at my job site?", variant="secondary")
+                q2_btn = gr.Button("Is emergency 24/7 service available?", variant="secondary")
+                q3_btn = gr.Button("Can dealers run penetration tests?", variant="secondary")            
+
             # On submit
             submit_btn.click(
                 fn=query_bot,
                 inputs=[user_input, chatbot],
+                outputs=[user_input, chatbot]
+            )
+            onEnter = user_input.submit(
+                fn=query_bot,
+                inputs=[user_input, chatbot],
+                outputs=[user_input, chatbot]
+            )
+            # Example question buttons - populate input and submit
+            q1_btn.click(
+                fn=query_bot,
+                inputs=[gr.Textbox(value="Can I get service performed at my job site?", visible=False), chatbot],
+                outputs=[user_input, chatbot]
+            )
+            
+            q2_btn.click(
+                fn=query_bot,
+                inputs=[gr.Textbox(value="Is emergency 24/7 service available?", visible=False), chatbot],
+                outputs=[user_input, chatbot]
+            )
+            
+            q3_btn.click(
+                fn=query_bot,
+                inputs=[gr.Textbox(value="Can dealers run penetration tests?", visible=False), chatbot],
                 outputs=[user_input, chatbot]
             )
         

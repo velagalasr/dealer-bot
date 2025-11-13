@@ -247,7 +247,7 @@ class ResponseSynthesisAgent:
 
 {context_text}
 
-Please provide a helpful and accurate response based on the query and context above."""
+Please provide a helpful and accurate response based on the query and context above. Do not include RAG scores"""
             
             # Generate response
             messages = [
@@ -256,7 +256,7 @@ Please provide a helpful and accurate response based on the query and context ab
             ]
             
             response = self.openai_client.generate_response(
-                messages, temperature=0.7, max_tokens=1000
+                messages, temperature=0.3, max_tokens=1000
             )
             
             return response.strip()
