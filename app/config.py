@@ -10,7 +10,7 @@ class Settings:
     
     # OpenAI Configuration
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4")
+    OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
     TEMPERATURE: float = float(os.getenv("TEMPERATURE") or "0.3")
     MAX_TOKENS: int = int(os.getenv("MAX_TOKENS") or "1000")
     LLM_TIMEOUT: int = int(os.getenv("LLM_TIMEOUT") or "30")
