@@ -55,9 +55,17 @@ class Settings:
     @classmethod
     def validate_config(cls) -> bool:
         """Validate that all required configurations are set"""
+        import warnings
         if not cls.OPENAI_API_KEY:
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
+            warnings.warn(
+                "OPENAI_API_KEY environment variable is not set. "
+                "LLM features will not work. Set it in HuggingFace Space Settings.",
+                UserWarning
+            )
+            return False
         return True
 
 # Create settings instance
 settings = Settings()
+
+# Note: Don't call validate_config() on import to avoid startup issues

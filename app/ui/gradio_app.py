@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import gradio as gr
 import requests
 import json
-from typing import List, Tuple
+from typing import List, Dict, Any
 from app.config import settings
 
 # Your existing config
@@ -16,7 +16,8 @@ API_KEY = settings.API_KEY
 
 # ============ CHAT INTERFACE ============
 
-def query_bot(user_query: str, history: List[Tuple[str, str]]) -> Tuple[str, List[Tuple[str, str]]]:
+def query_bot(user_query: str, history: List[Dict[str, Any]]) -> tuple[str, List[Dict[str, Any]]]:
+    """Query bot using messages format for Gradio 5.x compatibility"""
     try:
         response = requests.post(
             f"{API_URL}/api/v1/query",
@@ -31,16 +32,19 @@ def query_bot(user_query: str, history: List[Tuple[str, str]]) -> Tuple[str, Lis
         
         if response.status_code != 200:
             error_msg = f"Error: {response.status_code}"
-            history.append((user_query, error_msg))
+            history.append({"role": "user", "content": user_query})
+            history.append({"role": "assistant", "content": error_msg})
             return "", history
         
         data = response.json()
         bot_response = data.get("response", "No response")
-        history.append((user_query, bot_response))
+        history.append({"role": "user", "content": user_query})
+        history.append({"role": "assistant", "content": bot_response})
         return "", history
         
     except Exception as e:
-        history.append((user_query, f"Error: {str(e)}"))
+        history.append({"role": "user", "content": user_query})
+        history.append({"role": "assistant", "content": f"Error: {str(e)}"})
         return "", history
 
 
@@ -87,7 +91,8 @@ with gr.Blocks(title="Dealer Bot") as demo:
             chatbot = gr.Chatbot(
                 label="Conversation",
                 height=300,
-                show_label=True
+                show_label=True,
+                type="messages"
             )
             
             with gr.Row():
@@ -117,22 +122,22 @@ with gr.Blocks(title="Dealer Bot") as demo:
                 inputs=[user_input, chatbot],
                 outputs=[user_input, chatbot]
             )
-            # Example question buttons - populate input and submit
+            # Example question buttons
             q1_btn.click(
-                fn=query_bot,
-                inputs=[gr.Textbox(value="Can I get service performed at my job site?", visible=False), chatbot],
+                fn=lambda history: query_bot("Can I get service performed at my job site?", history),
+                inputs=[chatbot],
                 outputs=[user_input, chatbot]
             )
             
             q2_btn.click(
-                fn=query_bot,
-                inputs=[gr.Textbox(value="Is emergency 24/7 service available?", visible=False), chatbot],
+                fn=lambda history: query_bot("Is emergency 24/7 service available?", history),
+                inputs=[chatbot],
                 outputs=[user_input, chatbot]
             )
             
             q3_btn.click(
-                fn=query_bot,
-                inputs=[gr.Textbox(value="Can dealers run penetration tests?", visible=False), chatbot],
+                fn=lambda history: query_bot("Can dealers run penetration tests?", history),
+                inputs=[chatbot],
                 outputs=[user_input, chatbot]
             )
         

@@ -24,7 +24,7 @@ pytest
 pytest-asyncio
 
 # UI Framework
-gradio==4.44.0
+gradio
 huggingface-hub
 
 # LangGraph & LangChain
