@@ -91,8 +91,7 @@ with gr.Blocks(title="Dealer Bot") as demo:
             chatbot = gr.Chatbot(
                 label="Conversation",
                 height=300,
-                show_label=True,
-                type="messages"
+                show_label=True
             )
             
             with gr.Row():
