@@ -171,7 +171,7 @@ class AgentOrchestrator:
                     session_id=session_id,
                     n_results=5,
                     user_id=user_id,
-                    doc_type="system"
+                    doc_type=None  # Search ALL documents (system + user)
                 )
             
             rag_documents = rag_result.get("documents", []) if rag_result.get("success") else []
