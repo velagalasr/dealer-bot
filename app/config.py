@@ -24,10 +24,12 @@ class Settings:
     BASE_DIR: Path = Path(__file__).parent.parent
     DATA_DIR: Path = BASE_DIR / "data"
     DOCUMENTS_PATH: Path = Path(os.getenv("DOCUMENTS_PATH", str(DATA_DIR / "documents")))
-    CHROMA_DB_PATH: str = os.getenv("CHROMA_DB_PATH", str(DATA_DIR / "vectors"))
+    # Use absolute path for ChromaDB to avoid relative path issues
+    CHROMA_DB_PATH: str = os.getenv("CHROMA_DB_PATH", str((DATA_DIR / "vectors").absolute()))
     
     # Create directories if they don't exist
     DOCUMENTS_PATH.mkdir(parents=True, exist_ok=True)
+    Path(CHROMA_DB_PATH).mkdir(parents=True, exist_ok=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     
     # Logging

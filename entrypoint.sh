@@ -2,9 +2,13 @@
 
 echo "=== Starting Dealer Bot Services ==="
 
-# Start FastAPI in background
+# Create data directories if they don't exist
+mkdir -p data/documents data/vectors
+echo "Created data directories"
+
+# Start FastAPI in background with single worker
 echo "Starting FastAPI on port 8000..."
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 &
 FASTAPI_PID=$!
 
 # Wait for FastAPI to be ready

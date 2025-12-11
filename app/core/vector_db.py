@@ -80,11 +80,18 @@ class VectorDatabase:
             Dict: Query results with documents and distances
         """
         try:
+            # Log collection info before query
+            count = self.collection.count()
+            logger.info(f"Querying collection with {count} documents")
+            
             results = self.collection.query(
                 query_embeddings=[embedding],
                 n_results=n_results,
                 include=["documents", "distances", "metadatas"]
             )
+            
+            docs_returned = len(results.get("documents", [[]])[0]) if results.get("documents") else 0
+            logger.info(f"Query returned {docs_returned} documents")
             
             return results
             
