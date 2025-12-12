@@ -14,6 +14,10 @@ jobs:
       with:
         fetch-depth: 0  ← ADD THIS! (full clone, not shallow)
     
+    - name: Remove large files before deploy
+      run: |
+        find . -type f -name "*.pdf" -delete
+    
     - name: Push to HF Spaces
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
