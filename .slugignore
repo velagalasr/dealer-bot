@@ -1,5 +1,4 @@
 # Exclude PDF documents from HuggingFace deployment
-data/documents/*.pdf
 *.pdf
 
 # Exclude other large files if any

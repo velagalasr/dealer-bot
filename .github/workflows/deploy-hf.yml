@@ -16,7 +16,8 @@ jobs:
     
     - name: Remove large files before deploy
       run: |
-        find . -type f -name "*.pdf" -delete
+        # Remove PDF files from application directories (avoid .git directory)
+        find . -type d -name '.git' -prune -o -type f -name '*.pdf' -delete 2>/dev/null || true
     
     - name: Push to HF Spaces
       env:
