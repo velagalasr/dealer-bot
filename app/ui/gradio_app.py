@@ -15,12 +15,15 @@ API_URL = "http://localhost:8000"
 API_KEY = settings.API_KEY
 
 # Check Gradio version for compatibility
+# HuggingFace uses older Gradio without 'type' parameter support
+import os
 try:
     version_parts = gr.__version__.split('.')
     GRADIO_VERSION = (int(version_parts[0]), int(version_parts[1]))
-    SUPPORTS_TYPE_PARAM = GRADIO_VERSION >= (5, 0)
-except:
-    # Default to not supporting type param if version parsing fails
+    SUPPORTS_TYPE_PARAM = GRADIO_VERSION >= (5, 0) and not os.getenv("SPACE_ID")
+    print(f"Gradio version: {gr.__version__}, SUPPORTS_TYPE_PARAM: {SUPPORTS_TYPE_PARAM}")
+except Exception as e:
+    print(f"Version detection failed: {e}")
     SUPPORTS_TYPE_PARAM = False
 
 # ============ CHAT INTERFACE ============
