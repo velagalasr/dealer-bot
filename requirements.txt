@@ -1,0 +1,37 @@
+# Update 11/10 11:18 PM
+# Core Framework
+fastapi
+uvicorn
+python-dotenv
+pydantic
+
+# LLM & Embeddings
+openai
+httpx
+sentence-transformers
+
+# NLP Libraries for Evaluation Metrics
+nltk
+
+# Vector Database
+chromadb
+numpy
+
+# Document Processing
+pypdf
+python-multipart
+requests
+
+# Testing
+pytest
+pytest-asyncio
+
+# UI Framework
+gradio>=5.0.0
+huggingface-hub
+
+# LangGraph & LangChain
+langchain
+langgraph
+langchain-openai
+langchain-core

@@ -1,0 +1,6 @@
+# Exclude PDF documents from HuggingFace deployment
+*.pdf
+
+# Exclude other large files if any
+*.zip
+*.tar.gz

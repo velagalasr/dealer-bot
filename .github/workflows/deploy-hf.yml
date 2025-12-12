@@ -1,0 +1,29 @@
+name: Deploy to HF Spaces
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  ← ADD THIS! (full clone, not shallow)
+    
+    - name: Remove large files before deploy
+      run: |
+        # Remove PDF files from application directories (avoid .git directory)
+        find . -type d -name '.git' -prune -o -type f -name '*.pdf' -delete 2>/dev/null || true
+    
+    - name: Push to HF Spaces
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        git remote add hf https://velagalasr:$HF_TOKEN@huggingface.co/spaces/velagalasr/dealer-bot
+        git push -f hf main
