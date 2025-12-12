@@ -46,7 +46,7 @@ def ingest_sample_documents():
             logger.info(f"Ingesting: {pdf_file.name}")
             result = rag_pipeline.ingest_document_from_file(
                 file_path=pdf_file,
-                doc_type="system",
+                doc_type="user",  # Use "user" to match orchestrator searches (doc_type=None)
                 user_id="auto-ingest",
                 chunk_size=500,
                 chunk_overlap=100

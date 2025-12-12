@@ -14,6 +14,10 @@ from app.config import settings
 API_URL = "http://localhost:8000"
 API_KEY = settings.API_KEY
 
+# Check Gradio version for compatibility
+GRADIO_VERSION = tuple(map(int, gr.__version__.split('.')[:2]))
+SUPPORTS_TYPE_PARAM = GRADIO_VERSION >= (5, 0)
+
 # ============ CHAT INTERFACE ============
 
 def format_quality_metrics(metrics: Dict[str, Any]) -> str:
@@ -138,11 +142,16 @@ with gr.Blocks(title="Dealer Bot") as demo:
         with gr.Tab("💬 Chat"):
             gr.Markdown("Ask questions about dealer services, maintenance, etc.")
             
-            chatbot = gr.Chatbot(
-                label="Conversation",
-                height=300,
-                show_label=True
-            )
+            # Create chatbot with version-specific parameters
+            chatbot_params = {
+                "label": "Conversation",
+                "height": 300,
+                "show_label": True
+            }
+            if SUPPORTS_TYPE_PARAM:
+                chatbot_params["type"] = "messages"
+            
+            chatbot = gr.Chatbot(**chatbot_params)
             
             # Quality metrics display area
             quality_display = gr.Markdown(
