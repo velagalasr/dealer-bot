@@ -10,6 +10,9 @@ openai
 httpx
 sentence-transformers
 
+# NLP Libraries for Evaluation Metrics
+nltk
+
 # Vector Database
 chromadb
 numpy

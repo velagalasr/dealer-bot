@@ -193,9 +193,11 @@ class AgentOrchestrator:
             
             response_text = response_result.get("response", "")
             response_strategy = response_result.get("response_strategy", "unknown")
+            quality_metrics = response_result.get("quality_metrics", {})
             
             logger.info(f"[{session_id}] Response strategy: {response_strategy}")
             logger.info(f"[{session_id}] Response length: {len(response_text)} chars")
+            logger.info(f"[{session_id}] Quality score: {quality_metrics.get('overall_quality', 0):.2f}")
             
             # ========== BUILD FINAL RESULT ==========
             result = {
@@ -205,6 +207,7 @@ class AgentOrchestrator:
                 "confidence": intent_confidence,
                 "specialist": specialist,
                 "sources": rag_documents,
+                "quality_metrics": quality_metrics,  # Add quality metrics to result
                 "session_id": session_id,
                 "agent_pipeline": "Intent -> Anomaly -> RAG -> Synthesis",
                 

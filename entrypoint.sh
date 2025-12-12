@@ -6,6 +6,10 @@ echo "=== Starting Dealer Bot Services ==="
 mkdir -p data/documents data/vectors
 echo "Created data directories"
 
+# Auto-ingest sample documents if vector DB is empty
+echo "Checking for sample documents to auto-ingest..."
+python auto_ingest.py
+
 # Start FastAPI in background with single worker
 echo "Starting FastAPI on port 8000..."
 python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 &

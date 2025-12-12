@@ -16,7 +16,51 @@ API_KEY = settings.API_KEY
 
 # ============ CHAT INTERFACE ============
 
-def query_bot(user_query: str, history: List[Dict[str, Any]]) -> tuple[str, List[Dict[str, Any]]]:
+def format_quality_metrics(metrics: Dict[str, Any]) -> str:
+    """Format quality metrics for display"""
+    if not metrics:
+        return ""
+    
+    # Get metric values
+    groundedness = metrics.get('groundedness', 0.0)
+    answer_rel = metrics.get('answer_relevance', 0.0)
+    context_rel = metrics.get('context_relevance', 0.0)
+    faithfulness = metrics.get('faithfulness', 0.0)
+    formatting = metrics.get('formatting', 0.0)
+    overall = metrics.get('overall_quality', 0.0)
+    
+    # Create visual bars
+    def make_bar(score: float) -> str:
+        filled = int(score * 10)
+        bar = "█" * filled + "░" * (10 - filled)
+        return bar
+    
+    # Color based on overall quality
+    if overall >= 0.8:
+        emoji = "✅"
+        quality_text = "Excellent"
+    elif overall >= 0.6:
+        emoji = "👍"
+        quality_text = "Good"
+    elif overall >= 0.4:
+        emoji = "⚠️"
+        quality_text = "Fair"
+    else:
+        emoji = "❌"
+        quality_text = "Low"
+    
+    return f"""
+📊 **Response Quality Metrics** {emoji} **{quality_text}** (Overall: {overall:.2f})
+
+• **Groundedness**: {make_bar(groundedness)} {groundedness:.2f} - Response based on documents
+• **Answer Relevance**: {make_bar(answer_rel)} {answer_rel:.2f} - Addresses your question
+• **Context Relevance**: {make_bar(context_rel)} {context_rel:.2f} - Retrieved docs match query
+• **Faithfulness**: {make_bar(faithfulness)} {faithfulness:.2f} - No hallucinations
+• **Formatting**: {make_bar(formatting)} {formatting:.2f} - Professional structure
+"""
+
+
+def query_bot(user_query: str, history: List[Dict[str, Any]]) -> tuple[str, List[Dict[str, Any]], str]:
     """Query bot using messages format for Gradio 5.x compatibility"""
     try:
         response = requests.post(
@@ -34,18 +78,24 @@ def query_bot(user_query: str, history: List[Dict[str, Any]]) -> tuple[str, List
             error_msg = f"Error: {response.status_code}"
             history.append({"role": "user", "content": user_query})
             history.append({"role": "assistant", "content": error_msg})
-            return "", history
+            return "", history, ""
         
         data = response.json()
         bot_response = data.get("response", "No response")
+        quality_metrics = data.get("quality_metrics", {})
+        
+        # Format quality metrics for display
+        metrics_display = format_quality_metrics(quality_metrics)
+        
         history.append({"role": "user", "content": user_query})
         history.append({"role": "assistant", "content": bot_response})
-        return "", history
+        
+        return "", history, metrics_display
         
     except Exception as e:
         history.append({"role": "user", "content": user_query})
         history.append({"role": "assistant", "content": f"Error: {str(e)}"})
-        return "", history
+        return "", history, f"Error: {str(e)}"
 
 
 # ============ DOCUMENT UPLOAD INTERFACE ============
@@ -91,7 +141,15 @@ with gr.Blocks(title="Dealer Bot") as demo:
             chatbot = gr.Chatbot(
                 label="Conversation",
                 height=300,
-                show_label=True
+                show_label=True,
+                type="messages"  # Explicitly set messages format for Gradio 5.x
+            )
+            
+            # Quality metrics display area
+            quality_display = gr.Markdown(
+                label="Response Quality",
+                value="",
+                visible=True
             )
             
             with gr.Row():
@@ -114,30 +172,30 @@ with gr.Blocks(title="Dealer Bot") as demo:
             submit_btn.click(
                 fn=query_bot,
                 inputs=[user_input, chatbot],
-                outputs=[user_input, chatbot]
+                outputs=[user_input, chatbot, quality_display]
             )
             onEnter = user_input.submit(
                 fn=query_bot,
                 inputs=[user_input, chatbot],
-                outputs=[user_input, chatbot]
+                outputs=[user_input, chatbot, quality_display]
             )
             # Example question buttons
             q1_btn.click(
                 fn=lambda history: query_bot("Can I get service performed at my job site?", history),
                 inputs=[chatbot],
-                outputs=[user_input, chatbot]
+                outputs=[user_input, chatbot, quality_display]
             )
             
             q2_btn.click(
                 fn=lambda history: query_bot("Is emergency 24/7 service available?", history),
                 inputs=[chatbot],
-                outputs=[user_input, chatbot]
+                outputs=[user_input, chatbot, quality_display]
             )
             
             q3_btn.click(
                 fn=lambda history: query_bot("Can dealers run penetration tests?", history),
                 inputs=[chatbot],
-                outputs=[user_input, chatbot]
+                outputs=[user_input, chatbot, quality_display]
             )
         
         # ========== TAB 2: DOCUMENT UPLOAD (NEW!) ==========

@@ -19,6 +19,10 @@ RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTr
 # Copy app
 COPY . .
 
+# Copy any sample documents to seed the database
+# Uncomment and add your PDF files to data/documents/ before building
+# COPY data/documents/*.pdf /app/data/documents/
+
 # Make entrypoint executable
 RUN chmod +x entrypoint.sh
 
