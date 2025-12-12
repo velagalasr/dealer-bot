@@ -1,0 +1,35 @@
+FRAUD PREVENTION AND DETECTION GUIDE
+
+Section 1: Account Fraud Detection
+When an account is flagged for fraud, it means our security system has detected suspicious activity. 
+This could include:
+- Unusual login locations
+- Multiple failed login attempts
+- Large or unusual transactions
+- Rapid account changes
+
+Section 2: What to Do If Your Account is Flagged
+1. Do not ignore the notification
+2. Contact our support team immediately
+3. Verify your identity through secure channels
+4. Review recent account activity
+5. Change your password if compromised
+
+Section 3: Investigation Process
+- Our fraud team will investigate within 24 hours
+- You will receive updates via email/phone
+- Provide any information requested promptly
+- Keep transaction records handy
+
+Section 4: Account Recovery
+- Reset your password
+- Enable two-factor authentication
+- Review and update security questions
+- Monitor account activity closely
+
+Section 5: Prevention Tips
+- Use strong, unique passwords
+- Never share account information
+- Enable notifications for account activity
+- Regularly review login history
+- Update recovery email/phone number

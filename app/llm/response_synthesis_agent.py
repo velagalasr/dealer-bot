@@ -397,7 +397,9 @@ Please provide a helpful and accurate response based on the query and context ab
                 query_emb = SEMANTIC_MODEL.encode(query, convert_to_tensor=True)
                 response_emb = SEMANTIC_MODEL.encode(response, convert_to_tensor=True)
                 similarity = util.cos_sim(query_emb, response_emb).item()
-                return round(similarity, 3)
+                # Scale from typical range [0.3, 0.9] to [0, 1]
+                scaled = (similarity - 0.2) / 0.7  # 0.2 as baseline, 0.9 as max
+                return round(max(0.0, min(scaled, 1.0)), 3)
             except:
                 pass
         
@@ -422,7 +424,9 @@ Please provide a helpful and accurate response based on the query and context ab
                 query_emb = SEMANTIC_MODEL.encode(query, convert_to_tensor=True)
                 context_emb = SEMANTIC_MODEL.encode(context[:1000], convert_to_tensor=True)  # Limit context length
                 similarity = util.cos_sim(query_emb, context_emb).item()
-                return round(similarity, 3)
+                # Scale from typical range [0.3, 0.9] to [0, 1]
+                scaled = (similarity - 0.2) / 0.7
+                return round(max(0.0, min(scaled, 1.0)), 3)
             except:
                 pass
         

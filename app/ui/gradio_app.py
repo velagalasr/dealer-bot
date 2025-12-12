@@ -61,18 +61,26 @@ def format_quality_metrics(metrics: Dict[str, Any]) -> str:
         emoji = "❌"
         quality_text = "Low"
     
-    return f"""
-📊 **Response Quality Metrics** {emoji} **{quality_text}** (Overall: {overall:.2f})
+    return f"""📊 **Response Quality Metrics** {emoji} **{quality_text}** (Overall: {overall:.2f})
 
-• **Groundedness**: {make_bar(groundedness)} {groundedness:.2f} - Response based on documents
-• **Answer Relevance**: {make_bar(answer_rel)} {answer_rel:.2f} - Addresses your question
-• **Context Relevance**: {make_bar(context_rel)} {context_rel:.2f} - Retrieved docs match query
-• **Faithfulness**: {make_bar(faithfulness)} {faithfulness:.2f} - No hallucinations
-• **Formatting**: {make_bar(formatting)} {formatting:.2f} - Professional structure
+**Groundedness** {groundedness:.2f} {make_bar(groundedness)} 
+*No hallucinations* 
+
+ **Answer Relevance** {answer_rel:.2f} {make_bar(answer_rel)} 
+ *Addresses your question*
+
+**Context Relevance** {context_rel:.2f} {make_bar(context_rel)} 
+*Retrieved docs match query* 
+
+**Faithfulness** {faithfulness:.2f} {make_bar(faithfulness)} 
+*Accurate to source material*
+
+**Formatting** {formatting:.2f} {make_bar(formatting)} 
+*Professional structure*
 """
 
 
-def query_bot(user_query: str, history: List[Dict[str, Any]]) -> tuple[str, List[Dict[str, Any]], str]:
+def query_bot(user_query: str, history: List[Dict[str, Any]]):
     """Query bot using messages format for Gradio 5.x compatibility"""
     try:
         response = requests.post(
@@ -90,7 +98,7 @@ def query_bot(user_query: str, history: List[Dict[str, Any]]) -> tuple[str, List
             error_msg = f"Error: {response.status_code}"
             history.append({"role": "user", "content": user_query})
             history.append({"role": "assistant", "content": error_msg})
-            return "", history, ""
+            return "", history, gr.update(value="", visible=True)
         
         data = response.json()
         bot_response = data.get("response", "No response")
@@ -102,12 +110,12 @@ def query_bot(user_query: str, history: List[Dict[str, Any]]) -> tuple[str, List
         history.append({"role": "user", "content": user_query})
         history.append({"role": "assistant", "content": bot_response})
         
-        return "", history, metrics_display
+        return "", history, gr.update(value=metrics_display, visible=True)
         
     except Exception as e:
         history.append({"role": "user", "content": user_query})
         history.append({"role": "assistant", "content": f"Error: {str(e)}"})
-        return "", history, f"Error: {str(e)}"
+        return "", history, gr.update(value=f"Error: {str(e)}", visible=True)
 
 
 # ============ DOCUMENT UPLOAD INTERFACE ============
@@ -150,39 +158,47 @@ with gr.Blocks(title="Dealer Bot") as demo:
         with gr.Tab("💬 Chat"):
             gr.Markdown("Ask questions about dealer services, maintenance, etc.")
             
-            # Create chatbot with version-specific parameters
-            chatbot_params = {
-                "label": "Conversation",
-                "height": 300,
-                "show_label": True
-            }
-            if SUPPORTS_TYPE_PARAM:
-                chatbot_params["type"] = "messages"
-            
-            chatbot = gr.Chatbot(**chatbot_params)
-            
-            # Quality metrics display area
-            quality_display = gr.Markdown(
-                label="Response Quality",
-                value="",
-                visible=True
-            )
-            
-            with gr.Row():
-                user_input = gr.Textbox(
-                    label="Your Question",
-                    placeholder="Type your question here...",
-                    lines=1,
-                    scale=4
-                )
-                submit_btn = gr.Button("Send", scale=1)
+            # Left column: Chat interface
+            with gr.Column():
+                # Create chatbot - try with type parameter first, fallback without it
+                try:
+                    chatbot = gr.Chatbot(
+                        label="Conversation",
+                        height=400,
+                        show_label=True,
+                        type="messages"
+                    )
+                except TypeError:
+                    # Older Gradio versions don't support 'type' parameter
+                    chatbot = gr.Chatbot(
+                        label="Conversation",
+                        height=400,
+                        show_label=True
+                    )
+                
+                with gr.Row():
+                    user_input = gr.Textbox(
+                        label="Your Question",
+                        placeholder="Type your question here...",
+                        lines=1,
+                        scale=4
+                    )
+                    submit_btn = gr.Button("Send", scale=1)
 
-            gr.Markdown("### Example Questions")
-            
-            with gr.Row():
-                q1_btn = gr.Button("Can I get service performed at my job site?", variant="secondary")
-                q2_btn = gr.Button("Is emergency 24/7 service available?", variant="secondary")
-                q3_btn = gr.Button("Can dealers run penetration tests?", variant="secondary")            
+                gr.Markdown("### Example Questions")
+                
+                with gr.Row():
+                    q1_btn = gr.Button("Can I get service performed at my job site?", variant="secondary")
+                    q2_btn = gr.Button("Is emergency 24/7 service available?", variant="secondary")
+                    q3_btn = gr.Button("Can dealers run penetration tests?", variant="secondary")
+                    q4_btn = gr.Button("My account is flagged for fraud, what is going on?", variant="secondary")
+                
+                # Quality metrics (shown after question)
+                quality_display = gr.Markdown(
+                    label="Response Quality",
+                    value="📊 **Response Quality Metrics**\n\nMetrics will appear here after you ask a question.",
+                    visible=False
+                )            
 
             # On submit
             submit_btn.click(
@@ -213,51 +229,111 @@ with gr.Blocks(title="Dealer Bot") as demo:
                 inputs=[chatbot],
                 outputs=[user_input, chatbot, quality_display]
             )
+
+            q4_btn.click(
+                fn=lambda history: query_bot("My account is flagged for fraud, what is going on?", history),
+                inputs=[chatbot],
+                outputs=[user_input, chatbot, quality_display]
+            )
         
         # ========== TAB 2: DOCUMENT UPLOAD (NEW!) ==========
-        with gr.Tab("📄 Upload Documents"):
-            with gr.Column():
-                gr.Markdown("### Select a PDF file add to knowledge base:")
+        # with gr.Tab("📄 Upload Documents"):
+        #     with gr.Column():
+        #         gr.Markdown("### Select a PDF file add to knowledge base:")
                 
-                file_input = gr.File(
-                    label="Choose only 1 file",
-                    file_count="single",
-                    file_types=[".pdf"]
-                )
+        #         file_input = gr.File(
+        #             label="Choose only 1 file",
+        #             file_count="single",
+        #             file_types=[".pdf"]
+        #         )
                 
-                upload_btn = gr.Button("📤 Upload Document", variant="primary")
+        #         upload_btn = gr.Button("📤 Upload Document", variant="primary")
                 
-                output_text = gr.Textbox(
-                    label="Upload Status",
-                    lines=4,
-                    interactive=False
-                )
+        #         output_text = gr.Textbox(
+        #             label="Upload Status",
+        #             lines=4,
+        #             interactive=False
+        #         )
             
-            # On upload
-            upload_btn.click(
-                fn=upload_document,
-                inputs=file_input,
-                outputs=output_text
-            )
+        #     # On upload
+        #     upload_btn.click(
+        #         fn=upload_document,
+        #         inputs=file_input,
+        #         outputs=output_text
+        #     )
         
         # ========== TAB 3: INFO ==========
         with gr.Tab("ℹ️ About"):
             gr.Markdown("""
-            ## Dealer Bot Features
+            ## Dealer Bot Architecture
             
-            - **4 Intelligent Agents:**
-              - Intent Classifier (understand user intent)
-              - Anomaly Detection (security checks)
-              - RAG Agent (search documents)
-              - Response Synthesis (generate answers)
+            - **2 LLM Agents (use AI reasoning):**
+              - Intent Classifier Agent (classify user intent)
+              - Response Synthesis Agent (generate answers)
+            
+            - **2 Pipeline Components (rule-based):**
+              - Anomaly Detector (security pattern matching)
+              - RAG Pipeline (document retrieval)
             
             - **Document Management:** Upload your knowledge base
             - **Semantic Search:** Find relevant information quickly
             - **Security:** Malicious query detection
             
             ## How to use:
-            1. **Chat Tab:** Ask questions about dealers, warranty, maintenance
-            2. **Upload Tab:** Add new documents to knowledge base
+            **Chat Tab:** Ask questions about dealers, warranty, maintenance
+            
+            ---
+            
+            ## Tech Stack
+            
+            ### Backend
+            - **Framework:** FastAPI (REST API)
+            - **Server:** Uvicorn (ASGI)
+            - **Language:** Python 3.11
+            
+            ### AI/ML
+            - **LLM:** OpenAI GPT-3.5-turbo
+            - **Orchestration:** LangChain, LangGraph
+            - **Embeddings:** 
+              - SentenceTransformer (all-MiniLM-L6-v2) for semantic similarity
+              - OpenAI text-embedding-3-small for RAG
+            
+            ### LLM Calls (2 per query)
+            
+            **1. Intent Classification (Conditional)**
+            - **Model:** GPT-3.5-turbo
+            - **When:** Only when rules-based confidence < 0.8
+            - **Parameters:**
+              - Temperature: 0.3 (deterministic)
+              - Max Tokens: 100
+              - Timeout: 30s
+            - **Purpose:** Verify/refine intent classification
+            
+            **2. Response Synthesis (Always)**
+            - **Model:** GPT-3.5-turbo
+            - **Parameters:**
+              - Temperature: 0.3 (consistent responses)
+              - Max Tokens: 1000
+              - Timeout: 30s
+            - **Purpose:** Generate final response with context
+            
+            ### Vector Database
+            - **Database:** ChromaDB 1.3.6 (PersistentClient)
+            - **Storage:** Local persistent storage at `data/vectors/`
+            
+            ### NLP & Evaluation
+            - **Metrics:** NLTK (BLEU, ROUGE scores)
+            - **Quality Metrics:** 5 real-time metrics with semantic similarity scaling
+              - Groundedness, Answer Relevance, Context Relevance, Faithfulness, Formatting
+            
+            ### Frontend
+            - **UI Framework:** Gradio 5.x
+            - **Interface:** Chat with real-time quality metrics display
+            
+            ### Deployment
+            - **Local:** Python venv with Windows startup scripts
+            - **Cloud:** HuggingFace Spaces (Docker, ephemeral storage)
+
 
             """)
 

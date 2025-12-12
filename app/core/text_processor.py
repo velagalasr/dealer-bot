@@ -58,6 +58,48 @@ class TextProcessor:
             logger.error(f"Failed to extract text from PDF: {str(e)}")
             raise
     
+    def extract_text_from_txt(self, file_path: Path) -> str:
+        """
+        Extract text from TXT file
+        
+        Args:
+            file_path: Path to TXT file
+            
+        Returns:
+            str: File content
+        """
+        try:
+            logger.info(f"Reading text from TXT: {file_path}")
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                text = f.read()
+            
+            logger.info(f"Read {len(text)} characters from TXT file")
+            return text
+            
+        except Exception as e:
+            logger.error(f"Failed to read text from TXT: {str(e)}")
+            raise
+    
+    def extract_text_from_file(self, file_path: Path) -> str:
+        """
+        Extract text from file (auto-detect PDF or TXT)
+        
+        Args:
+            file_path: Path to file
+            
+        Returns:
+            str: Extracted text
+        """
+        file_ext = file_path.suffix.lower()
+        
+        if file_ext == '.pdf':
+            return self.extract_text_from_pdf(file_path)
+        elif file_ext == '.txt':
+            return self.extract_text_from_txt(file_path)
+        else:
+            raise ValueError(f"Unsupported file type: {file_ext}")
+    
     def clean_text(self, text: str) -> str:
         """
         Clean and normalize text
@@ -132,10 +174,10 @@ class TextProcessor:
     def process_pdf(self, file_path: Path, chunk_size: int = None,
                    overlap: int = None) -> List[str]:
         """
-        Complete pipeline: extract → clean → chunk
+        Complete pipeline: extract → clean → chunk (supports PDF and TXT)
         
         Args:
-            file_path: Path to PDF file
+            file_path: Path to PDF or TXT file
             chunk_size: Custom chunk size (optional)
             overlap: Custom overlap (optional)
             
@@ -143,10 +185,10 @@ class TextProcessor:
             List[str]: List of processed chunks
         """
         try:
-            logger.info(f"Processing PDF: {file_path}")
+            logger.info(f"Processing file: {file_path}")
             
-            # Step 1: Extract text
-            text = self.extract_text_from_pdf(file_path)
+            # Step 1: Extract text (auto-detects file type)
+            text = self.extract_text_from_file(file_path)
             
             # Step 2: Clean text
             text = self.clean_text(text)

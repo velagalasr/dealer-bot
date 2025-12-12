@@ -29,23 +29,23 @@ def ingest_sample_documents():
         
         logger.info("Vector DB is empty, checking for sample documents to ingest...")
         
-        # Look for PDFs in data/documents/
-        docs_dir = Path("data/documents")
+        # Look for TXT files in data/txt_documents/
+        docs_dir = Path("data/txt_documents")
         if not docs_dir.exists():
             logger.info("No documents directory found")
             return
             
-        pdf_files = list(docs_dir.glob("*.pdf"))
-        if not pdf_files:
-            logger.info("No PDF files found in data/documents/")
+        txt_files = list(docs_dir.glob("*.txt"))
+        if not txt_files:
+            logger.info("No TXT files found in data/txt_documents/")
             return
         
-        logger.info(f"Found {len(pdf_files)} PDF files to ingest")
+        logger.info(f"Found {len(txt_files)} TXT files to ingest")
         
-        for pdf_file in pdf_files:
-            logger.info(f"Ingesting: {pdf_file.name}")
+        for txt_file in txt_files:
+            logger.info(f"Ingesting: {txt_file.name}")
             result = rag_pipeline.ingest_document_from_file(
-                file_path=pdf_file,
+                file_path=txt_file,
                 doc_type="user",  # Use "user" to match orchestrator searches (doc_type=None)
                 user_id="auto-ingest",
                 chunk_size=500,
@@ -53,9 +53,9 @@ def ingest_sample_documents():
             )
             
             if result.get("success"):
-                logger.info(f"✅ Successfully ingested {pdf_file.name}: {result.get('chunks_created')} chunks")
+                logger.info(f"✅ Successfully ingested {txt_file.name}: {result.get('chunks_created')} chunks")
             else:
-                logger.error(f"❌ Failed to ingest {pdf_file.name}: {result.get('error')}")
+                logger.error(f"❌ Failed to ingest {txt_file.name}: {result.get('error')}")
                 
     except Exception as e:
         logger.error(f"Error during auto-ingest: {str(e)}")
