@@ -141,8 +141,7 @@ with gr.Blocks(title="Dealer Bot") as demo:
             chatbot = gr.Chatbot(
                 label="Conversation",
                 height=300,
-                show_label=True,
-                type="messages"  # Explicitly set messages format for Gradio 5.x
+                show_label=True
             )
             
             # Quality metrics display area
