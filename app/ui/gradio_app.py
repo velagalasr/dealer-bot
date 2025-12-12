@@ -265,17 +265,14 @@ with gr.Blocks(title="Dealer Bot") as demo:
         # ========== TAB 3: INFO ==========
         with gr.Tab("ℹ️ About"):
             gr.Markdown("""
-            ## Dealer Bot Architecture
+            ## Dealer Bot Features
             
-            - **2 LLM Agents (use AI reasoning):**
-              - Intent Classifier Agent (classify user intent)
-              - Response Synthesis Agent (generate answers)
+            - **4 Intelligent Agents:**
+              - Intent Classifier (understand user intent)
+              - Anomaly Detection (security checks)
+              - RAG Agent (search documents)
+              - Response Synthesis (generate answers)
             
-            - **2 Pipeline Components (rule-based):**
-              - Anomaly Detector (security pattern matching)
-              - RAG Pipeline (document retrieval)
-            
-            - **Document Management:** Upload your knowledge base
             - **Semantic Search:** Find relevant information quickly
             - **Security:** Malicious query detection
             
