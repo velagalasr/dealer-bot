@@ -46,7 +46,6 @@ MANIFEST
 htmlcov/
 
 # Data & Vectors
-data/documents/
 data/vectors/
 
 # Logs
